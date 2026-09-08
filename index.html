@@ -126,7 +126,7 @@
 <body>
 <div class="wrap">
   <h1>Control de órdenes de trabajo</h1>
-  <p class="sub">Marca los 4 documentos de cada orden. Cuando estén completos, la fila se pone verde. Usa los filtros para armar reportes.</p>
+  <p class="sub">Marca los 5 checks de cada orden (OT, SC, OC, Factura, Informe). Cuando estén completos, la fila se pone verde. Usa los filtros para armar reportes.</p>
 
   <div class="tabs" id="tabs"></div>
 
@@ -142,10 +142,10 @@
   <div class="table-scroll">
     <table>
       <colgroup>
-        <col class="col-fecha"><col class="col-desc"><col class="col-sol">
+        <col class="col-fecha"><col class="col-desc"><col class="col-sol"><col class="col-sol">
         <col class="col-doc"><col class="col-doc"><col class="col-doc"><col class="col-doc">
         <col class="col-monto">
-        <col class="col-check"><col class="col-check"><col class="col-check"><col class="col-check">
+        <col class="col-check"><col class="col-check"><col class="col-check"><col class="col-check"><col class="col-check">
         <col class="col-del">
       </colgroup>
       <thead>
@@ -153,6 +153,7 @@
           <th>Fecha</th>
           <th>Descripción</th>
           <th>Solicitante</th>
+          <th>Recepciona</th>
           <th>Orden de trabajo</th>
           <th>Solicitud de compra</th>
           <th>Orden de compra</th>
@@ -162,6 +163,7 @@
           <th class="check-th">SC</th>
           <th class="check-th">OC</th>
           <th class="check-th">FAC</th>
+          <th class="check-th">INF</th>
           <th></th>
         </tr>
       </thead>
@@ -187,16 +189,18 @@
 </div>
 
 <script>
-const FIELDS = ["descripcion","solicitante","orden_trabajo","solicitud_compra","orden_compra","factura"];
-const CHECKS = ["ot","sc","oc","fac"];
-const CHECK_LABELS = {ot:"Orden de trabajo", sc:"Solicitud de compra", oc:"Orden de compra", fac:"Factura"};
+const FIELDS = ["descripcion","solicitante","recepciona","orden_trabajo","solicitud_compra","orden_compra","factura"];
+const CHECKS = ["ot","sc","oc","fac","inf"];
+const CHECK_LABELS = {ot:"Orden de trabajo", sc:"Solicitud de compra", oc:"Orden de compra", fac:"Factura", inf:"Informe"};
+const TEXT_FILTERS = ["recepciona"];
+const TEXT_FILTER_LABELS = {recepciona:"Recepciona"};
 const MESES_INDEX_KEY = "control_ordenes_trabajo:meses";
 const MESES_NOMBRES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 let meses = [];
 let mesActivo = null;
 let rows = [];
-let filtros = {ot:"todos", sc:"todos", oc:"todos", fac:"todos"};
+let filtros = {ot:"todos", sc:"todos", oc:"todos", fac:"todos", inf:"todos", recepciona:"todos"};
 
 function claveMes(date){ return date.getFullYear() + "-" + String(date.getMonth()+1).padStart(2,"0"); }
 function nombreMes(clave){ const [y,m] = clave.split("-"); return MESES_NOMBRES[parseInt(m,10)-1] + " " + y; }
@@ -208,18 +212,23 @@ function newRow(){
   return {
     id: "r" + Date.now() + Math.random().toString(36).slice(2,7),
     fecha: fechaHoy(),
-    descripcion:"", solicitante:"", orden_trabajo:"", solicitud_compra:"",
+    descripcion:"", solicitante:"", recepciona:"", orden_trabajo:"", solicitud_compra:"",
     orden_compra:"", factura:"", monto:"",
-    ot:false, sc:false, oc:false, fac:false
+    ot:false, sc:false, oc:false, fac:false, inf:false
   };
 }
 
-function filaCompleta(row){ return row.ot && row.sc && row.oc && row.fac; }
+function filaCompleta(row){ return row.ot && row.sc && row.oc && row.fac && row.inf; }
 
 function filaPasaFiltro(row){
   for(const c of CHECKS){
     if(filtros[c]==="si" && !row[c]) return false;
     if(filtros[c]==="no" && row[c]) return false;
+  }
+  for(const t of TEXT_FILTERS){
+    const tieneTexto = !!(row[t] && row[t].trim().length>0);
+    if(filtros[t]==="si" && !tieneTexto) return false;
+    if(filtros[t]==="no" && tieneTexto) return false;
   }
   return true;
 }
@@ -246,12 +255,15 @@ function renderTabs(){
 function renderFiltros(){
   const el = document.getElementById("filterRow");
   el.innerHTML = "";
-  CHECKS.forEach(c=>{
+  const claves = [...TEXT_FILTERS, ...CHECKS];
+  const etiquetas = {...TEXT_FILTER_LABELS, ...CHECK_LABELS};
+
+  claves.forEach(c=>{
     const group = document.createElement("div");
     group.className = "filter-group";
     const label = document.createElement("span");
     label.className = "fg-label";
-    label.textContent = CHECK_LABELS[c];
+    label.textContent = etiquetas[c];
     group.appendChild(label);
 
     const btns = document.createElement("div");
@@ -276,7 +288,7 @@ function renderFiltros(){
   const resetBtn = document.createElement("button");
   resetBtn.textContent = "Quitar filtros";
   resetBtn.addEventListener("click", ()=>{
-    filtros = {ot:"todos", sc:"todos", oc:"todos", fac:"todos"};
+    filtros = {ot:"todos", sc:"todos", oc:"todos", fac:"todos", inf:"todos", recepciona:"todos"};
     renderFiltros();
     render();
   });
@@ -367,7 +379,7 @@ function render(){
   updateSummary(visibles);
 
   const esMesActual = mesActivo === claveMes(new Date());
-  const hayFiltro = CHECKS.some(c=>filtros[c]!=="todos");
+  const hayFiltro = [...CHECKS, ...TEXT_FILTERS].some(c=>filtros[c]!=="todos");
   let nota = "";
   if(!esMesActual) nota = "Cierre de " + nombreMes(mesActivo) + ". ";
   if(hayFiltro) nota += "Mostrando " + visibles.length + " de " + rows.length + " filas según el filtro aplicado.";
@@ -427,6 +439,12 @@ document.getElementById("addRow").addEventListener("click", ()=>{
 });
 
 init();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(err => console.error("Service worker no registrado:", err));
+  });
+}
 </script>
 </body>
 </html>
