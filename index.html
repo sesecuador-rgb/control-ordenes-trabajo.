@@ -2,449 +2,252 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Control de Órdenes de Trabajo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Control de órdenes de trabajo</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#185fa5">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Órdenes">
+<link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2c5596">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root{
-    --bg:#f3f4f1;
-    --card:#ffffff;
-    --border:#d8d9d4;
-    --text:#2c2c2a;
-    --text-secondary:#5f5e5a;
-    --red-bg:#fcebeb;
-    --red-border:#e24b4a;
-    --red-text:#791f1f;
-    --green-bg:#eaf3de;
-    --green-border:#639922;
-    --green-text:#27500a;
-    --accent:#185fa5;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    padding:24px 16px 60px;
-  }
-  .wrap{max-width:1300px;margin:0 auto;}
-  h1{font-size:20px;font-weight:500;margin:0 0 4px;}
-  p.sub{color:var(--text-secondary);font-size:13px;margin:0 0 16px;}
-
-  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--border);}
-  .tab{
-    padding:8px 14px;font-size:13px;border:0.5px solid var(--border);border-bottom:none;
-    background:#e9e9e6;color:var(--text-secondary);border-radius:8px 8px 0 0;cursor:pointer;
-  }
-  .tab.active{background:var(--card);color:var(--text);font-weight:500;}
-  .tab .badge{display:inline-block;margin-left:6px;font-size:10px;background:var(--green-border);color:#fff;border-radius:6px;padding:1px 6px;}
-
-  .toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
-  button.tool{
-    border:0.5px solid var(--border);background:var(--card);color:var(--text);
-    padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;
-  }
-  button.tool:hover{background:#ececea;}
-
-  .filters{
-    background:var(--card);border:0.5px solid var(--border);border-radius:10px;
-    padding:12px 14px;margin-bottom:14px;
-  }
-  .filters-title{font-size:12px;color:var(--text-secondary);margin:0 0 10px;font-weight:500;}
-  .filter-row{display:flex;gap:18px;flex-wrap:wrap;}
-  .filter-group{display:flex;flex-direction:column;gap:5px;}
-  .filter-group .fg-label{font-size:11px;color:var(--text-secondary);}
-  .fg-buttons{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;}
-  .fg-buttons button{
-    border:none;background:var(--card);color:var(--text-secondary);
-    padding:6px 10px;font-size:12px;cursor:pointer;border-right:1px solid var(--border);
-  }
-  .fg-buttons button:last-child{border-right:none;}
-  .fg-buttons button.active{background:var(--accent);color:#fff;}
-  .filter-reset{margin-left:auto;align-self:flex-end;}
-  .filter-reset button{
-    border:none;background:none;color:var(--accent);font-size:12px;cursor:pointer;text-decoration:underline;
-  }
-
-  .table-scroll{overflow-x:auto;border:0.5px solid var(--border);border-radius:10px;background:var(--card);}
-  table{border-collapse:collapse;width:100%;min-width:1180px;font-size:13px;table-layout:fixed;}
-  colgroup col.col-fecha{width:96px;}
-  colgroup col.col-desc{width:260px;}
-  colgroup col.col-sol{width:130px;}
-  colgroup col.col-doc{width:110px;}
-  colgroup col.col-monto{width:110px;}
-  colgroup col.col-check{width:64px;}
-  colgroup col.col-del{width:36px;}
-
-  thead th{
-    background:#e9e9e6;color:var(--text);font-weight:500;text-align:left;padding:10px 6px;
-    border-bottom:1px solid var(--border);white-space:normal;font-size:12px;vertical-align:bottom;
-  }
-  thead th.check-th{text-align:center;}
-  tbody td{border:1px solid var(--border);padding:0;vertical-align:top;}
-
-  td textarea, td input[type="text"], td input[type="number"]{
-    width:100%;border:none;background:transparent;padding:9px 8px;font-size:13px;
-    color:inherit;font-family:inherit;resize:none;overflow:hidden;line-height:1.4;
-    display:block;
-  }
-  td textarea{min-height:38px;}
-  td input:focus, td textarea:focus{outline:2px solid var(--accent);outline-offset:-2px;}
-
-  td.fecha-cell{padding:9px 8px;white-space:nowrap;color:var(--text-secondary);font-size:12px;}
-
-  tr.row-pendiente{background:var(--red-bg);}
-  tr.row-pendiente td input, tr.row-pendiente td textarea, tr.row-pendiente td.fecha-cell{color:var(--red-text);}
-  tr.row-completa{background:var(--green-bg);}
-  tr.row-completa td input, tr.row-completa td textarea, tr.row-completa td.fecha-cell{color:var(--green-text);}
-
-  .check-cell{text-align:center;vertical-align:middle;padding:8px 4px;}
-  .check-cell input[type="checkbox"]{width:20px;height:20px;cursor:pointer;accent-color:var(--green-border);}
-
-  .del-btn{background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:16px;padding:8px;}
-  .del-cell{text-align:center;}
-  .amount-col input{text-align:right;}
-
-  .summary{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-  .summary-card{background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:14px 16px;}
-  .summary-card .label{font-size:12px;color:var(--text-secondary);margin:0 0 6px;}
-  .summary-card .value{font-size:20px;font-weight:500;margin:0;}
-  .summary-card.total .value{color:var(--text);}
-  .summary-card.pendiente .value{color:var(--red-text);}
-  .summary-card.facturado .value{color:var(--green-text);}
-  .summary-note{font-size:12px;color:var(--text-secondary);margin-top:10px;}
-  @media (max-width:640px){ .summary{grid-template-columns:1fr;} .filter-reset{margin-left:0;} }
+:root{--bg:#f3f3f1;--card:#fff;--line:#e2e2de;--ink:#2a2a2a;--muted:#666;--blue:#2c5596;--pend:#fbecec;--pendInk:#7a2323;--ok:#eaf3e2;--okInk:#2d5a1b;--check:#5f9433;--warn:#fff4cc;--warnInk:#7a5a00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,"Segoe UI",Arial,sans-serif;padding:24px 28px 40px;padding-top:calc(24px + env(safe-area-inset-top,0px))}
+h1{font-size:28px;font-weight:500;margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 18px;font-size:16px}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:12px 22px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:#ecece8;cursor:pointer;font-size:17px}
+.tab.on{background:var(--card);font-weight:500}
+.badge{background:#5f9433;color:#fff;font-size:13px;border-radius:10px;padding:2px 8px;margin-left:6px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+button,.btn{font:inherit;font-size:16px;padding:11px 20px;border-radius:8px;border:1px solid var(--line);background:var(--card);cursor:pointer;color:var(--ink)}
+.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.save{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:18px}
+.save.dirty{background:var(--warn);border-color:#e8d38a}
+.save .st{font-size:15px;color:var(--muted)}
+.save.dirty .st{color:var(--warnInk);font-weight:500}
+.filters{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 24px;margin-bottom:24px}
+.filters h3{margin:0 0 14px;font-weight:500;font-size:17px}
+.fgrid{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-end}
+.fgrid label{display:block;font-size:15px;color:#555;margin-bottom:8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;border-right:1px solid var(--line);border-radius:0;padding:9px 18px}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--blue);color:#fff}
+.sel{font:inherit;font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;min-width:170px}
+.clear{margin-left:auto;color:var(--blue);text-decoration:underline;background:none;border:none}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:1950px}
+th{background:#e9e9e5;text-align:left;font-weight:500;padding:12px 10px;font-size:16px;vertical-align:bottom}
+td{border-top:1px solid #eadada;border-right:1px solid #f0e3e3;padding:4px;vertical-align:top}
+tr.p td{background:var(--pend)}
+tr.p input,tr.p textarea{color:var(--pendInk)}
+tr.c td{background:var(--ok)}
+tr.c input,tr.c textarea{color:var(--okInk)}
+td input[type=text],td textarea{width:100%;border:1px solid transparent;background:transparent;font:inherit;font-size:16px;padding:8px 6px;border-radius:4px}
+td textarea{resize:none;overflow:hidden;min-height:38px;line-height:1.35}
+td input:focus,td textarea:focus{border-color:var(--blue);background:#fff;outline:none}
+td.n input{text-align:right}
+td.k{text-align:center;padding-top:10px}
+td.k input{width:30px;height:30px;accent-color:var(--check);cursor:pointer}
+td.nota textarea{color:#b03030!important;font-size:14px}
+.del{border:none;background:none;color:#a33;font-size:22px;padding:6px 10px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:28px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 28px}
+.card .l{color:#555;font-size:17px}
+.card .v{font-size:32px;font-weight:500;margin-top:8px}
+.foot{color:var(--muted);margin-top:14px;font-size:15px}
+@media(max-width:800px){.cards{grid-template-columns:1fr}body{padding:16px}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Control de órdenes de trabajo</h1>
-  <p class="sub">Marca los 5 checks de cada orden (OT, SC, OC, Factura, Informe). Cuando estén completos, la fila se pone verde. Usa los filtros para armar reportes.</p>
+<h1>Control de órdenes de trabajo</h1>
+<p class="sub">Marca los 5 checks de cada orden (OT, SC, OC, Informe, Factura). Cuando estén completos, la fila se pone verde. Usa los filtros para armar reportes.</p>
 
-  <div class="tabs" id="tabs"></div>
-
-  <div class="toolbar">
-    <button class="tool" id="addRow">+ Agregar fila</button>
-  </div>
-
-  <div class="filters">
-    <p class="filters-title">Filtros (para reportes)</p>
-    <div class="filter-row" id="filterRow"></div>
-  </div>
-
-  <div class="table-scroll">
-    <table>
-      <colgroup>
-        <col class="col-fecha"><col class="col-desc"><col class="col-sol"><col class="col-sol">
-        <col class="col-doc"><col class="col-doc"><col class="col-doc"><col class="col-doc">
-        <col class="col-monto">
-        <col class="col-check"><col class="col-check"><col class="col-check"><col class="col-check"><col class="col-check">
-        <col class="col-del">
-      </colgroup>
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Descripción</th>
-          <th>Solicitante</th>
-          <th>Recepciona</th>
-          <th>Orden de trabajo</th>
-          <th>Solicitud de compra</th>
-          <th>Orden de compra</th>
-          <th>Factura</th>
-          <th>Monto</th>
-          <th class="check-th">OT</th>
-          <th class="check-th">SC</th>
-          <th class="check-th">OC</th>
-          <th class="check-th">FAC</th>
-          <th class="check-th">INF</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-
-  <div class="summary">
-    <div class="summary-card total">
-      <p class="label">Total (según filtro)</p>
-      <p class="value" id="sumTotal">$0.00</p>
-    </div>
-    <div class="summary-card pendiente">
-      <p class="label">Pendiente de completar</p>
-      <p class="value" id="sumPendiente">$0.00</p>
-    </div>
-    <div class="summary-card facturado">
-      <p class="label">Completo y facturado</p>
-      <p class="value" id="sumFacturado">$0.00</p>
-    </div>
-  </div>
-  <p class="summary-note" id="cierreNote"></p>
+<div class="save" id="saveBox">
+  <button class="primary" onclick="guardarExcel()">Guardar en Excel</button>
+  <label class="btn">Abrir Excel<input type="file" accept=".xlsx,.xls" hidden onchange="abrirExcel(this)"></label>
+  <span class="st" id="saveSt"></span>
 </div>
 
+<div class="tabs" id="tabs"></div>
+<div class="bar"><button onclick="agregarFila()">+ Agregar fila</button></div>
+
+<div class="filters">
+  <h3>Filtros (para reportes)</h3>
+  <div class="fgrid" id="fgrid"></div>
+</div>
+
+<datalist id="emps"></datalist>
+<div class="tw"><table><thead><tr>
+<th style="width:120px">Fecha</th><th style="width:170px">Empresa</th><th style="width:330px">Descripción</th><th style="width:170px">Solicitante</th><th style="width:150px">Recepciona</th>
+<th style="width:130px">Orden de trabajo</th><th style="width:120px">Solicitud de compra</th><th style="width:120px">Orden de compra</th><th style="width:110px">Factura</th>
+<th style="width:110px;text-align:right">Monto</th><th>OT</th><th>SC</th><th>OC</th><th>INF</th><th>FAC</th><th style="width:220px">Notas</th><th></th>
+</tr></thead><tbody id="tb"></tbody></table></div>
+
+<div class="cards">
+  <div class="card"><div class="l">Total (según filtro)</div><div class="v" id="tTot">$0,00</div></div>
+  <div class="card"><div class="l">Pendiente de completar</div><div class="v" id="tPen" style="color:var(--pendInk)">$0,00</div></div>
+  <div class="card"><div class="l">Completo y facturado</div><div class="v" id="tCom" style="color:var(--okInk)">$0,00</div></div>
+</div>
+<p class="foot" id="foot"></p>
+
 <script>
-const FIELDS = ["descripcion","solicitante","recepciona","orden_trabajo","solicitud_compra","orden_compra","factura"];
-const CHECKS = ["ot","sc","oc","fac","inf"];
-const CHECK_LABELS = {ot:"Orden de trabajo", sc:"Solicitud de compra", oc:"Orden de compra", fac:"Factura", inf:"Informe"};
-const TEXT_FILTERS = ["recepciona"];
-const TEXT_FILTER_LABELS = {recepciona:"Recepciona"};
-const MESES_INDEX_KEY = "control_ordenes_trabajo:meses";
-const MESES_NOMBRES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const KEY='bas_control_ot_v2';
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const CHK=['ot','sc','oc','inf','fac'];
 
-let meses = [];
-let mesActivo = null;
-let rows = [];
-let filtros = {ot:"todos", sc:"todos", oc:"todos", fac:"todos", inf:"todos", recepciona:"todos"};
+// Datos recuperados de las capturas (septiembre 2026)
+const SEED={"2026-09":[
+["02/09/2026","Trabajos en balanza de piso línea 1 planta 6.5","Ing Yenifer","Ing Yenifer","27534275","","","",400,"10000",""],
+["10/09/2026","Trabajos en balanza de piso línea 4 planta 6.5","Ing Yenifer","","","","","",400,"00000",""],
+["02/09/2026","Trabajos en báscula camionera CEDI","Ing Yenifer","","27550991","","","",350,"10000",""],
+["02/09/2026","Calibración de balanzas con 1t GPM","Ing Yenifer","","","","","",3800,"00000","Confirmar si sigue vigente"],
+["02/09/2026","Calibración de balanzas con 1t bloque C","Ing Yenifer","","","","","",7200,"00000","Confirmar si sigue vigente"],
+["02/09/2026","Cotización de soporte técnico camionera 6.5","Ing Yenifer","","27537917","","","",100,"10000",""],
+["02/09/2026","Calibración de 6 tolvas bloque C 1t","Ing Yenifer","","","","","",600,"00000","Confirmar si sigue vigente"],
+["02/09/2026","Revisión del sistema Dinnisen","Ing Yenifer","","","","","",100,"00000","Confirmar si sigue vigente"],
+["02/09/2026","Revisión de tolva de macro 40AW05 bloque C (20 ago)","Ing Yenifer","","27523716","","","",100,"10000",""],
+["02/09/2026","Reemplazo de controlador báscula de micro planta 6.5","Ing Yenifer","","27534281","","","",700,"10000",""],
+["10/09/2026","Revisión de balanza línea 1 planta 6.5","Ing Yenifer","","","","","",50,"00000",""],
+["10/09/2026","Reparación de balanza de piso planta 4.5","Ing Francisco Vera","Ing Kristel","27418050","81784","5217092","",100,"11111","SC antes decía 81794: confirmar"],
+["10/09/2026","Revisión de báscula camionera CEDI","Ing Yenifer","Ing Yenifer","27319377","","5217021","",350,"11100",""],
+["10/09/2026","Revisión de báscula camionera CEDI PT","Ing Yenifer","Ing Yenifer","27402829","","5217021","",350,"11100","Misma OC que la fila anterior"],
+["10/09/2026","Revisión de balanza bigbag línea 4","Ing Yenifer","","27493102","83517","5217071","",100,"11100",""],
+["10/09/2026","Cambio de celda de carga en estación pre pesaje micro planta 6.5","Ing Jorge González","Ing Kristel","27493821","83498","5217066","",150,"11100",""],
+["10/09/2026","Revisión de báscula bigbag línea 1 planta 6.5","Ing Yenifer","Ing Kristel","27431131","","5193058","",150,"11100",""],
+["10/09/2026","Revisión y habilitación de indicador de peso tolva de macro","Ing Yenifer","Ing Kristel","27472890","","5193056","",50,"11100","OC también apareció como 519356: confirmar"],
+["10/09/2026","Reemplazo de controlador de peso","Ing Yenifer","Ing Kristel","27473079","","5193054","",1200,"11100",""],
+["10/09/2026","Báscula de piso área aditivos planta 6.5","Ing Yenifer","Ing Kristel","27343296","","5177986","",750,"11100",""],
+["10/09/2026","Revisión de tolva báscula área de despacho planta 6.5","Ing Yenifer","Ing César","27453539","81994","5177974","",100,"11100",""],
+["10/09/2026","Cambio de tarjeta de suma bloque C 40AW09 micro","Ing Yenifer","","","","","",150,"00000",""],
+["10/09/2026","Reparación de patinetas Yale con pesaje","Ing Michael Chávez","Ing Chávez","","","","",1080,"00000",""],
+["10/09/2026","Reparación de tolva de aceite planta 6.5","Ing Yenifer","","27584866","","","",60,"10000","Misma OT que 'Revisión de tolva de aceite': ¿duplicado?"],
+["10/09/2026","Revisión de tolva de líquidos","Ing Yenifer","Ing César","","80496","5177990","",112.26,"11000",""],
+["10/09/2026","Revisión de báscula bigbag línea 1 planta 6.5 (2)","Ing Yenifer","Ing Kristel","","82158","5193058","",150,"11000","Misma OC que otra fila bigbag línea 1: ¿duplicado?"],
+["10/09/2026","Revisión de tolvas de macro GLP y cambio de celda de carga (200+500)","Ing Yenifer","","27588172","","","",700,"10000",""],
+["10/09/2026","Revisión de tolva de aceite planta 6.5","Ing Yenifer","","27584866","","","",60,"10000","Misma OT que 'Reparación de tolva de aceite': ¿duplicado?"],
+["10/09/2026","Revisión de balanza de piso micro 6.5 bigbags","Ing Yenifer","","","","","",60,"00000",""],
+["10/09/2026","Calibración con 1t 5 balanzas intake","Ing Yenifer","","","","","",500,"00000",""]
+]};
 
-function claveMes(date){ return date.getFullYear() + "-" + String(date.getMonth()+1).padStart(2,"0"); }
-function nombreMes(clave){ const [y,m] = clave.split("-"); return MESES_NOMBRES[parseInt(m,10)-1] + " " + y; }
-function filasKey(clave){ return "control_ordenes_trabajo:filas:" + clave; }
-function fechaHoy(){ const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
-function formatearFecha(iso){ if(!iso) return ""; const [y,m,d] = iso.split("-"); return d + "/" + m + "/" + y; }
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function fromArr(a){const c={};CHK.forEach((k,i)=>c[k]=a[9][i]==='1');return{id:uid(),fecha:a[0],empresa:'',desc:a[1],sol:a[2],rec:a[3],ot:a[4],sc:a[5],oc:a[6],fac:a[7],monto:a[8],c,nota:a[10]||''}}
+function hoy(){const d=new Date();return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
+function mesActual(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function nombreMes(k){const[y,m]=k.split('-');return MESES[+m-1]+' '+y}
+function claveDeNombre(n){const p=n.trim().split(/\s+/);const i=MESES.findIndex(m=>m.toLowerCase()===(p[0]||'').toLowerCase());return(i>=0&&/^\d{4}$/.test(p[1]||''))?p[1]+'-'+String(i+1).padStart(2,'0'):null}
+const money=v=>'$'+(Number(v)||0).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-function newRow(){
-  return {
-    id: "r" + Date.now() + Math.random().toString(36).slice(2,7),
-    fecha: fechaHoy(),
-    descripcion:"", solicitante:"", recepciona:"", orden_trabajo:"", solicitud_compra:"",
-    orden_compra:"", factura:"", monto:"",
-    ot:false, sc:false, oc:false, fac:false, inf:false
-  };
+let st;
+try{st=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!st||!st.meses){st={meses:{},ultimoExcel:null,dirty:true};for(const k in SEED)st.meses[k]=SEED[k].map(fromArr)}
+if(!st.meses[mesActual()])st.meses[mesActual()]=[];
+let mes=mesActual();
+const filt={emp:'',rec:'t',ot:'t',sc:'t',oc:'t',fac:'t',inf:'t'};
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+
+function guardar(dirty=true){if(dirty)st.dirty=true;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){alert('No se pudo guardar en la tablet. Usa "Guardar en Excel" ahora.')}pintarEstado()}
+function pintarEstado(){
+  const box=document.getElementById('saveBox'),s=document.getElementById('saveSt');
+  box.classList.toggle('dirty',!!st.dirty);
+  const u=st.ultimoExcel?'Último Excel: '+new Date(st.ultimoExcel).toLocaleString('es-EC',{dateStyle:'short',timeStyle:'short'}):'Aún no has guardado un Excel';
+  s.textContent=st.dirty?'Hay cambios sin guardar en Excel. '+u:'Todo guardado. '+u;
 }
 
-function filaCompleta(row){ return row.ot && row.sc && row.oc && row.fac && row.inf; }
-
-function filaPasaFiltro(row){
-  for(const c of CHECKS){
-    if(filtros[c]==="si" && !row[c]) return false;
-    if(filtros[c]==="no" && row[c]) return false;
-  }
-  for(const t of TEXT_FILTERS){
-    const tieneTexto = !!(row[t] && row[t].trim().length>0);
-    if(filtros[t]==="si" && !tieneTexto) return false;
-    if(filtros[t]==="no" && tieneTexto) return false;
-  }
-  return true;
+function pintarTabs(){
+  const keys=Object.keys(st.meses).sort();
+  document.getElementById('tabs').innerHTML=keys.map(k=>`<div class="tab ${k===mes?'on':''}" onclick="mes='${k}';pintar()">${nombreMes(k)}${k===mesActual()?'<span class="badge">actual</span>':''}</div>`).join('');
 }
+const FILTROS=[['rec','Recepciona'],['ot','Orden de trabajo'],['sc','Solicitud de compra'],['oc','Orden de compra'],['inf','Informe'],['fac','Factura']];
+function pintarFiltros(){
+  const emps=[...new Set((st.meses[mes]||[]).map(r=>(r.empresa||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  if(filt.emp&&!emps.includes(filt.emp))emps.push(filt.emp);
+  document.getElementById('emps').innerHTML=[...new Set(Object.values(st.meses).flat().map(r=>(r.empresa||'').trim()).filter(Boolean))].map(e=>`<option value="${esc(e)}">`).join('');
+  document.getElementById('fgrid').innerHTML=`<div><label>Empresa</label><select class="sel" onchange="filt.emp=this.value;pintar()"><option value="">Todas</option>${emps.map(e=>`<option ${filt.emp===e?'selected':''} value="${esc(e)}">${esc(e)}</option>`).join('')}</select></div>`+FILTROS.map(([k,l])=>`<div><label>${l}</label><div class="seg">${[['t','Todos'],['c','Con'],['s','Sin']].map(([v,t])=>`<button class="${filt[k]===v?'on':''}" onclick="filt.${k}='${v}';pintar()">${t}</button>`).join('')}</div></div>`).join('')+'<button class="clear" onclick="limpiarFiltros();pintar()">Quitar filtros</button>';
+}
+function limpiarFiltros(){for(const k in filt)filt[k]=k==='emp'?'':'t'}
+function tiene(r,k){if(k==='inf')return r.c.inf;if(k==='rec')return!!String(r.rec).trim();return!!String(r[k]).trim()||r.c[k]}
+function pasa(r){if(filt.emp&&(r.empresa||'').trim()!==filt.emp)return false;for(const k in filt){if(k==='emp'||filt[k]==='t')continue;const h=tiene(r,k);if(filt[k]==='c'&&!h)return false;if(filt[k]==='s'&&h)return false}return true}
+const completo=r=>CHK.every(k=>r.c[k]);
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
 
-function renderTabs(){
-  const claveActual = claveMes(new Date());
-  const tabsEl = document.getElementById("tabs");
-  tabsEl.innerHTML = "";
-  meses.forEach(m=>{
-    const tab = document.createElement("div");
-    tab.className = "tab" + (m===mesActivo ? " active" : "");
-    tab.textContent = nombreMes(m);
-    if(m===claveActual){
-      const badge = document.createElement("span");
-      badge.className = "badge";
-      badge.textContent = "actual";
-      tab.appendChild(badge);
-    }
-    tab.addEventListener("click", ()=> cambiarMes(m));
-    tabsEl.appendChild(tab);
+function pintarTabla(){
+  const rows=st.meses[mes]||[];const vis=rows.filter(pasa);
+  const txt=(r,f,cls='')=>`<td class="${cls}"><textarea rows="1" data-f="${f}">${esc(r[f])}</textarea></td>`;
+  document.getElementById('tb').innerHTML=vis.map(r=>`<tr data-id="${r.id}" class="${completo(r)?'c':'p'}">
+    <td><input type="text" data-f="fecha" value="${esc(r.fecha)}"></td><td><input type="text" list="emps" data-f="empresa" placeholder="Escribir…" value="${esc(r.empresa)}"></td>${txt(r,'desc')}${txt(r,'sol')}${txt(r,'rec')}
+    <td><input type="text" inputmode="numeric" data-f="ot" value="${esc(r.ot)}"></td><td><input type="text" inputmode="numeric" data-f="sc" value="${esc(r.sc)}"></td>
+    <td><input type="text" inputmode="numeric" data-f="oc" value="${esc(r.oc)}"></td><td><input type="text" data-f="fac" value="${esc(r.fac)}"></td>
+    <td class="n"><input type="text" inputmode="decimal" data-f="monto" value="${esc(r.monto)}"></td>
+    ${CHK.map(k=>`<td class="k"><input type="checkbox" data-c="${k}" ${r.c[k]?'checked':''}></td>`).join('')}
+    ${txt(r,'nota','nota')}<td><button class="del" title="Borrar fila" data-del="1">×</button></td></tr>`).join('');
+  document.querySelectorAll('#tb textarea').forEach(autoAlto);
+  document.getElementById('foot').textContent=`Mostrando ${vis.length} de ${rows.length} filas según el filtro aplicado.`;
+  totales();
+}
+function autoAlto(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
+function totales(){
+  const vis=(st.meses[mes]||[]).filter(pasa);let t=0,c=0;
+  vis.forEach(r=>{const m=Number(String(r.monto).replace(',','.'))||0;t+=m;if(completo(r))c+=m});
+  tTot.textContent=money(t);tPen.textContent=money(t-c);tCom.textContent=money(c);
+}
+const fila=id=>st.meses[mes].find(r=>r.id===id);
+const tb=document.getElementById('tb');
+tb.addEventListener('input',e=>{const el=e.target,tr=el.closest('tr');if(!tr)return;const r=fila(tr.dataset.id);
+  if(el.dataset.f){r[el.dataset.f]=el.value;if(el.tagName==='TEXTAREA')autoAlto(el)}guardar();totales()});
+tb.addEventListener('change',e=>{const el=e.target,tr=el.closest('tr');if(el.dataset.f==='empresa'){pintarFiltros();return}if(!tr||!el.dataset.c)return;const r=fila(tr.dataset.id);
+  r.c[el.dataset.c]=el.checked;tr.className=completo(r)?'c':'p';guardar();totales()});
+tb.addEventListener('click',e=>{if(!e.target.dataset.del)return;const tr=e.target.closest('tr');const r=fila(tr.dataset.id);
+  if(confirm('¿Borrar la fila "'+(r.desc||'sin descripción')+'"?')){st.meses[mes]=st.meses[mes].filter(x=>x!==r);guardar();pintarTabla()}});
+
+function agregarFila(){
+  const emp=filt.emp;
+  st.meses[mes].push({id:uid(),fecha:hoy(),empresa:emp,desc:'',sol:'',rec:'',ot:'',sc:'',oc:'',fac:'',monto:'',c:{ot:false,sc:false,oc:false,fac:false,inf:false},nota:''});
+  limpiarFiltros();guardar();pintar();
+  const ta=document.querySelectorAll('#tb tr:last-child textarea')[0];if(ta){ta.focus();ta.scrollIntoView({block:'center'})}
+}
+function pintar(){pintarTabs();pintarFiltros();pintarTabla();pintarEstado()}
+
+// ---------- Excel ----------
+const COLS=['Fecha','Empresa','Descripción','Solicitante','Recepciona','Orden de trabajo','Solicitud de compra','Orden de compra','Factura','Monto','OT','SC','OC','INF','FAC','Notas'];
+function guardarExcel(){
+  if(typeof XLSX==='undefined'){alert('Necesitas internet la primera vez para generar el Excel. Conéctate e intenta de nuevo.');return}
+  const wb=XLSX.utils.book_new();
+  Object.keys(st.meses).sort().forEach(k=>{
+    const data=[COLS,...st.meses[k].map(r=>[r.fecha,r.empresa||'',r.desc,r.sol,r.rec,r.ot,r.sc,r.oc,r.fac,Number(String(r.monto).replace(',','.'))||0,...CHK.map(c=>r.c[c]?'Sí':''),r.nota])];
+    const ws=XLSX.utils.aoa_to_sheet(data);
+    ws['!cols']=[12,20,45,20,16,15,13,13,12,11,5,5,5,5,5,35].map(w=>({wch:w}));
+    XLSX.utils.book_append_sheet(wb,ws,nombreMes(k));
   });
+  const d=new Date(),f=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  XLSX.writeFile(wb,'Control_OT_'+f+'.xlsx');
+  st.ultimoExcel=Date.now();st.dirty=false;guardar(false);
 }
-
-function renderFiltros(){
-  const el = document.getElementById("filterRow");
-  el.innerHTML = "";
-  const claves = [...TEXT_FILTERS, ...CHECKS];
-  const etiquetas = {...TEXT_FILTER_LABELS, ...CHECK_LABELS};
-
-  claves.forEach(c=>{
-    const group = document.createElement("div");
-    group.className = "filter-group";
-    const label = document.createElement("span");
-    label.className = "fg-label";
-    label.textContent = etiquetas[c];
-    group.appendChild(label);
-
-    const btns = document.createElement("div");
-    btns.className = "fg-buttons";
-    [["todos","Todos"],["si","Con"],["no","Sin"]].forEach(([val,txt])=>{
-      const b = document.createElement("button");
-      b.textContent = txt;
-      if(filtros[c]===val) b.classList.add("active");
-      b.addEventListener("click", ()=>{
-        filtros[c] = val;
-        renderFiltros();
-        render();
-      });
-      btns.appendChild(b);
+function abrirExcel(inp){
+  const file=inp.files[0];inp.value='';if(!file)return;
+  if(typeof XLSX==='undefined'){alert('Necesitas internet para leer el Excel.');return}
+  const rd=new FileReader();
+  rd.onload=e=>{try{
+    const wb=XLSX.read(e.target.result,{type:'array'});const nuevos={};
+    wb.SheetNames.forEach(n=>{const k=claveDeNombre(n);if(!k)return;
+      const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:false});const h=a[0].map(x=>String(x).trim());
+      const ix=c=>h.indexOf(c);
+      nuevos[k]=a.slice(1).filter(x=>x.some(v=>String(v).trim())).map(x=>{const g=c=>ix(c)>=0?String(x[ix(c)]).trim():'';
+        const c={};CHK.forEach((ck,i)=>{const v=g(COLS[10+i]).toLowerCase();c[ck]=['sí','si','x','1','true','verdadero'].includes(v)});
+        return{id:uid(),fecha:g('Fecha'),empresa:g('Empresa'),desc:g('Descripción'),sol:g('Solicitante'),rec:g('Recepciona'),ot:g('Orden de trabajo'),sc:g('Solicitud de compra'),oc:g('Orden de compra'),fac:g('Factura'),monto:g('Monto').replace(/[$\s]/g,''),c,nota:g('Notas')||g('Nota de revisión')}});
     });
-    group.appendChild(btns);
-    el.appendChild(group);
-  });
-
-  const resetWrap = document.createElement("div");
-  resetWrap.className = "filter-reset";
-  const resetBtn = document.createElement("button");
-  resetBtn.textContent = "Quitar filtros";
-  resetBtn.addEventListener("click", ()=>{
-    filtros = {ot:"todos", sc:"todos", oc:"todos", fac:"todos", inf:"todos", recepciona:"todos"};
-    renderFiltros();
-    render();
-  });
-  resetWrap.appendChild(resetBtn);
-  el.appendChild(resetWrap);
+    const ks=Object.keys(nuevos);
+    if(!ks.length){alert('No encontré hojas con nombre de mes (ej. "Septiembre 2026").');return}
+    if(!confirm('Se cargarán: '+ks.map(nombreMes).join(', ')+'.\nEsos meses se reemplazarán con lo del Excel. ¿Continuar?'))return;
+    ks.forEach(k=>st.meses[k]=nuevos[k]);mes=ks.sort()[ks.length-1];st.dirty=false;guardar(false);pintar();
+    alert('Excel cargado correctamente.');
+  }catch(err){alert('No se pudo leer el archivo: '+err.message)}};
+  rd.readAsArrayBuffer(file);
 }
-
-function cambiarMes(clave){
-  mesActivo = clave;
-  cargarFilasMes(clave);
-  renderTabs();
-  render();
-}
-
-function autoResize(el){
-  el.style.height = "auto";
-  el.style.height = el.scrollHeight + "px";
-}
-
-function render(){
-  const tbody = document.getElementById("tbody");
-  tbody.innerHTML = "";
-  const visibles = rows.filter(filaPasaFiltro);
-
-  visibles.forEach(row=>{
-    const tr = document.createElement("tr");
-    tr.className = filaCompleta(row) ? "row-completa" : "row-pendiente";
-    tr.dataset.id = row.id;
-
-    const tdFecha = document.createElement("td");
-    tdFecha.className = "fecha-cell";
-    tdFecha.textContent = formatearFecha(row.fecha);
-    tr.appendChild(tdFecha);
-
-    FIELDS.forEach(f=>{
-      const td = document.createElement("td");
-      const ta = document.createElement("textarea");
-      ta.rows = 1;
-      ta.value = row[f];
-      ta.addEventListener("input", e=>{ row[f]=e.target.value; autoResize(e.target); save(); });
-      td.appendChild(ta);
-      tr.appendChild(td);
-      requestAnimationFrame(()=>autoResize(ta));
-    });
-
-    const tdMonto = document.createElement("td");
-    tdMonto.className = "amount-col";
-    const inputMonto = document.createElement("input");
-    inputMonto.type = "number";
-    inputMonto.step = "0.01";
-    inputMonto.placeholder = "0.00";
-    inputMonto.value = row.monto;
-    inputMonto.addEventListener("input", e=>{ row.monto=e.target.value; save(); updateSummary(visibles); });
-    tdMonto.appendChild(inputMonto);
-    tr.appendChild(tdMonto);
-
-    CHECKS.forEach(c=>{
-      const td = document.createElement("td");
-      td.className = "check-cell";
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = row[c];
-      cb.addEventListener("change", e=>{
-        row[c] = e.target.checked;
-        save();
-        render();
-      });
-      td.appendChild(cb);
-      tr.appendChild(td);
-    });
-
-    const tdDel = document.createElement("td");
-    tdDel.className = "del-cell";
-    const del = document.createElement("button");
-    del.className = "del-btn";
-    del.textContent = "✕";
-    del.addEventListener("click", ()=>{
-      rows = rows.filter(r=>r.id!==row.id);
-      save();
-      render();
-    });
-    tdDel.appendChild(del);
-    tr.appendChild(tdDel);
-
-    tbody.appendChild(tr);
-  });
-
-  updateSummary(visibles);
-
-  const esMesActual = mesActivo === claveMes(new Date());
-  const hayFiltro = [...CHECKS, ...TEXT_FILTERS].some(c=>filtros[c]!=="todos");
-  let nota = "";
-  if(!esMesActual) nota = "Cierre de " + nombreMes(mesActivo) + ". ";
-  if(hayFiltro) nota += "Mostrando " + visibles.length + " de " + rows.length + " filas según el filtro aplicado.";
-  document.getElementById("cierreNote").textContent = nota;
-}
-
-function updateSummary(visibles){
-  const total = visibles.reduce((sum,r)=> sum + (parseFloat(r.monto)||0), 0);
-  const facturado = visibles.filter(filaCompleta).reduce((sum,r)=> sum + (parseFloat(r.monto)||0), 0);
-  const pendiente = total - facturado;
-  const fmt = v => "$" + v.toLocaleString("es-EC", {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById("sumTotal").textContent = fmt(total);
-  document.getElementById("sumPendiente").textContent = fmt(pendiente);
-  document.getElementById("sumFacturado").textContent = fmt(facturado);
-}
-
-function guardarIndiceMeses(){
-  try{ localStorage.setItem(MESES_INDEX_KEY, JSON.stringify(meses)); }
-  catch(err){ console.error("No se pudo guardar el índice de meses:", err); }
-}
-function cargarFilasMes(clave){
-  try{
-    const value = localStorage.getItem(filasKey(clave));
-    rows = value ? JSON.parse(value) : [];
-  }catch(err){ rows = []; }
-}
-function save(){
-  try{ localStorage.setItem(filasKey(mesActivo), JSON.stringify(rows)); }
-  catch(err){ console.error("No se pudo guardar:", err); }
-}
-function asegurarMesActual(){
-  const claveActual = claveMes(new Date());
-  if(!meses.includes(claveActual)){
-    meses.push(claveActual);
-    meses.sort();
-    guardarIndiceMeses();
-  }
-}
-
-function init(){
-  try{
-    const value = localStorage.getItem(MESES_INDEX_KEY);
-    meses = value ? JSON.parse(value) : [];
-  }catch(err){ meses = []; }
-  asegurarMesActual();
-  mesActivo = claveMes(new Date());
-  cargarFilasMes(mesActivo);
-  renderTabs();
-  renderFiltros();
-  render();
-}
-
-document.getElementById("addRow").addEventListener("click", ()=>{
-  rows.push(newRow());
-  save();
-  render();
-});
-
-init();
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(err => console.error("Service worker no registrado:", err));
-  });
-}
+window.addEventListener('beforeunload',e=>{if(st.dirty){e.preventDefault();e.returnValue=''}});
+pintar();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});let rl=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(rl)return;rl=true;if(!st.dirty)location.reload()})}
 </script>
 </body>
 </html>
